@@ -1,3 +1,8 @@
+"""
+extract data from xml files, preprocess them and save them in a csv file
+"""
+
+
 import re
 import csv
 import pycld2 as cld2
@@ -16,8 +21,7 @@ def remove_bad_chars(text):
 
 def data_extraction():
     """
-    data extraction method from xml files in a folder to write into csv file, using Fred's suggestion
-    :param
+    data extraction method from xml files in a folder to write into csv file
     """
     directory = 'test_data/vertical_files'
 
@@ -30,12 +34,13 @@ def data_extraction():
                                 lineterminator="\n", )
         writer.writeheader()
         for filename in os.listdir(directory):
+            #get labels from file names
             category = re.findall(r"#category#(.+?)#", filename)
             subcategory = re.findall(r"#subcategory#(.+?)#", filename)
-            # why not use digits
             targetid = re.findall(r"#targetid#(\d+)", filename)
             if len(category) > 0:
                 category = category[0]
+                #fix inconsistent names
                 if category == 'medicaldevices':
                     category = 'medicaldevice'
                 elif category == 'lifesciences-PFA':
@@ -54,27 +59,32 @@ def data_extraction():
             f = os.path.join(directory, filename)
             if os.path.isfile(f):
                 with open(f, "rb") as infile:
+                    #start preprocessing 
                     soup = BeautifulSoup(infile, parser='lxml')
                     trans = soup.find_all('trans-unit')
                     for t in trans:
                         if len(t.find_all('alt-trans')) > 0:
                             scr = t.source.text
                             s_soup = BeautifulSoup(scr, features='html.parser')
+                            #remmove html tags
                             scr = s_soup.get_text().strip()
+                            #remove sequences of space
                             scr = re.sub("\s{2,}", " ", scr)
                             scr = re.sub('<.*?>', "", scr)
                             scr = re.sub('\\\\r\\\\n', '', scr)
+                            #remove non-ascii characters
                             scr = scr.encode("ascii", "ignore")
                             scr = scr.decode()
                             scr = remove_bad_chars(scr)
                             _, _, details = cld2.detect(scr)
+                            #include only english words
                             if details[0][0] == "ENGLISH":
                                 # remove empty strings
                                 if len(scr) > 0:
                                     curr_scr.append(scr)
 
                     joined_scr = " ".join(curr_scr)
-                # remove empty doc
+                # remove empty docs
                 if len(joined_scr) > 0:
                     writer.writerow({"sources": joined_scr, "categories": category, "subcategories": subcategory,
                                      "targetids": targetid})
