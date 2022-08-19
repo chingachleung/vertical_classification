@@ -1,3 +1,3 @@
-# vertical_classification_transaperfect
+# vertical classification
 
-Include 4 types of models: SVM, kenLM, Roberta and Longformer
+Trains four 4 types of models to classify content into domains: SVM, kenLM, Roberta and Longformer
